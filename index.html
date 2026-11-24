@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmocioPlay | Pictionary y Dramatización de Emociones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #060b19;
+            --bg-card: #0f1733;
+            --neon-cyan: #00f5d4;
+            --neon-magenta: #f72585;
+            --neon-yellow: #fee440;
+            --neon-purple: #9b5de5;
+            --neon-orange: #ff6b35;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-deep);
+            color: #f8fafc;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(155, 93, 229, 0.16) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(0, 245, 212, 0.14) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(247, 37, 133, 0.08) 0%, transparent 60%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Transición suave de tarjeta sin conflictos de backface-visibility */
+        .card-stage {
+            position: relative;
+            width: 100%;
+            min-height: 390px;
+        }
+
+        .card-face {
+            transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 1.5rem;
+        }
+
+        /* Animación de ruleta / sorteo */
+        @keyframes roulettePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(0, 245, 212, 0.45); }
+            50% { transform: scale(1.015); box-shadow: 0 0 45px rgba(247, 37, 133, 0.75); }
+        }
+
+        .roulette-spinning {
+            animation: roulettePulse 0.3s infinite ease-in-out;
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(3deg); }
+        }
+
+        .animate-float {
+            animation: floatSlow 5s ease-in-out infinite;
+        }
+
+        /* Glows vibrantes */
+        .glow-cyan { box-shadow: 0 0 22px rgba(0, 245, 212, 0.25); }
+        .glow-magenta { box-shadow: 0 0 22px rgba(247, 37, 133, 0.25); }
+        .glow-yellow { box-shadow: 0 0 22px rgba(254, 228, 64, 0.25); }
+        .glow-purple { box-shadow: 0 0 22px rgba(155, 93, 229, 0.25); }
+
+        /* Scrollbar estilizada */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0f24; }
+        ::-webkit-scrollbar-thumb { background: #2a3b75; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f5d4; }
+
+        /* Botones táctiles vibrantes */
+        .btn-vibrant {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-vibrant:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+        .btn-vibrant:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-pink-500 selection:text-white">
+
+    <!-- ENCABEZADO GLOBAL -->
+    <header class="sticky top-0 z-40 backdrop-blur-md bg-[#060b19]/90 border-b border-indigo-500/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <!-- Logo SVG Rueda de Emociones -->
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#f72585] via-[#9b5de5] to-[#00f5d4] p-0.5 shadow-lg shadow-pink-500/25">
+                    <div class="w-full h-full bg-[#0a1128] rounded-[10px] flex items-center justify-center">
+                        <svg class="w-7 h-7" viewBox="0 0 36 36" fill="none">
+                            <circle cx="18" cy="18" r="14" stroke="#00f5d4" stroke-width="2.5" stroke-dasharray="6 3"/>
+                            <path d="M18 4V32M4 18H32M8.1 8.1L27.9 27.9M27.9 8.1L8.1 27.9" stroke="#f72585" stroke-width="1.8" stroke-linecap="round"/>
+                            <circle cx="18" cy="18" r="5" fill="#fee440"/>
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-[#00f5d4] via-[#fee440] to-[#f72585] bg-clip-text text-transparent">
+                        EMOCIOPLAY
+                    </h1>
+                    <p class="text-xs text-indigo-300 font-medium hidden sm:block">Pictionary & Dramatización de Emociones</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Interruptor Modo Proyector -->
+                <button id="projectorModeBtn" onclick="toggleProjectorMode()" class="btn-vibrant px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 flex items-center gap-1.5 transition" title="Oculta la palabra en pantalla para jugar con proyector">
+                    <span id="projectorIcon">📽️</span>
+                    <span id="projectorText">Modo Proyector: ON</span>
+                </button>
+
+                <!-- Botón de Sonido -->
+                <button id="toggleSoundBtn" onclick="toggleSound()" class="p-2.5 rounded-xl bg-[#151f42] hover:bg-[#1f2d5e] border border-indigo-400/30 text-cyan-300 transition" title="Activar/Desactivar sonidos">
+                    <span id="soundIcon">🔊</span>
+                </button>
+
+                <!-- Botón Ver Reglas / Volver al Juego -->
+                <button id="navToggleBtn" onclick="toggleView()" class="btn-vibrant px-4 py-2 rounded-xl font-bold text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white border border-purple-400/40 shadow-lg shadow-purple-600/20 flex items-center gap-2">
+                    <span id="navToggleIcon">🎮</span>
+                    <span id="navToggleText">Ir al Tablero</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
+
+    <!-- ===================================================================== -->
+    <!-- VISTA 1: REGLAS COMPLETAS E INDICACIONES DEL JUEGO                    -->
+    <!-- ===================================================================== -->
+    <main id="rulesView" class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <!-- Hero Banner -->
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#131d42] via-[#19143a] to-[#0a1128] border-2 border-cyan-400/35 p-6 sm:p-10 mb-8 shadow-2xl">
+            <svg class="absolute -right-12 -top-12 w-64 h-64 opacity-25 animate-float pointer-events-none" viewBox="0 0 200 200">
+                <polygon points="100,10 190,60 190,140 100,190 10,140 10,60" fill="none" stroke="#00f5d4" stroke-width="4"/>
+                <circle cx="100" cy="100" r="55" fill="none" stroke="#f72585" stroke-width="4" stroke-dasharray="12 8"/>
+                <circle cx="100" cy="100" r="22" fill="#fee440"/>
+            </svg>
+
+            <div class="relative z-10 max-w-3xl">
+                <span class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-pink-500/20 text-pink-300 border border-pink-500/40 mb-4">
+                    🎭 Basado en la Rueda de Plutchik • 30 Conceptos
+                </span>
+                <h2 class="text-3xl sm:text-5xl font-black text-white leading-tight mb-4">
+                    Expresa, Dibuja y Descubre el Mundo Emocional
+                </h2>
+                <p class="text-indigo-200 text-base sm:text-lg leading-relaxed mb-6">
+                    Un desafío grupal de expresión corporal y creatividad visual. Aprende a diferenciar entre reacciones inmediatas (<strong class="text-cyan-300">emociones</strong>) y estados duraderos (<strong class="text-amber-300">sentimientos</strong>) mientras compites por equipos.
+                </p>
+                <div class="flex flex-wrap items-center gap-4">
+                    <button onclick="startGame()" class="btn-vibrant px-8 py-4 rounded-2xl font-black text-lg uppercase tracking-wide bg-gradient-to-r from-[#00f5d4] via-[#00bbf9] to-[#f72585] text-slate-950 shadow-xl shadow-cyan-500/30 flex items-center gap-3">
+                        <span>🚀 ¡INICIAR JUEGO!</span>
+                    </button>
+                    <a href="#reglas-detalle" class="px-5 py-3.5 rounded-2xl font-semibold text-sm bg-white/10 hover:bg-white/15 text-white border border-white/20 transition">
+                        Leer reglas completas ↓
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cuadrícula de Reglas e Indicaciones -->
+        <div id="reglas-detalle" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            <!-- 1. Objetivo del Juego -->
+            <section class="rounded-3xl bg-[#0f1733] border border-cyan-400/30 p-6 glow-cyan flex flex-col justify-between">
+                <div>
+                    <div class="w-12 h-12 rounded-2xl bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center text-2xl mb-4">🎯</div>
+                    <h3 class="text-xl font-extrabold text-cyan-300 mb-2">1. Objetivo del Juego</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">
+                        Acumular la mayor cantidad de puntos identificando <strong>emociones, sentimientos y expresiones corporales</strong> mediante dibujo y actuación sin palabras, demostrando habilidad para distinguir reacciones súbitas de estados emocionales prolongados.
+                    </p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-indigo-500/20 text-xs text-cyan-200/80 font-medium">
+                    Meta estándar: ¡Primer equipo en llegar a 20 puntos!
+                </div>
+            </section>
+
+            <!-- 2. Preparación y Equipos -->
+            <section class="rounded-3xl bg-[#0f1733] border border-purple-400/30 p-6 glow-purple">
+                <div class="w-12 h-12 rounded-2xl bg-purple-400/20 border border-purple-400/40 flex items-center justify-center text-2xl mb-4">👥</div>
+                <h3 class="text-xl font-extrabold text-purple-300 mb-2">2. Preparación y Equipos</h3>
+                <ul class="text-slate-300 text-sm space-y-2.5 leading-relaxed">
+                    <li class="flex items-start gap-2">
+                        <span class="text-purple-400 font-bold">•</span>
+                        <span><strong>Jugadores:</strong> De 4 a 16 personas, organizadas en <strong>2 a 6 equipos</strong> equilibrados.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-purple-400 font-bold">•</span>
+                        <span><strong>Mazo digital:</strong> 30 tarjetas únicas que salen al azar estilo ruleta sin repetirse hasta completar la baraja.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-purple-400 font-bold">•</span>
+                        <span><strong>Material físico:</strong> Hojas blancas o pizarra y marcadores gruesos visibles para todo el grupo.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 3. Condición de Victoria -->
+            <section class="rounded-3xl bg-[#0f1733] border border-amber-400/30 p-6 glow-yellow">
+                <div class="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-2xl mb-4">🏆</div>
+                <h3 class="text-xl font-extrabold text-amber-300 mb-2">3. Condición de Victoria</h3>
+                <ul class="text-slate-300 text-sm space-y-2.5 leading-relaxed">
+                    <li class="flex items-start gap-2">
+                        <span class="text-amber-400 font-bold">★</span>
+                        <span><strong>Partida Estándar:</strong> Gana el primer equipo que alcance o supere los <strong>20 puntos</strong>.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-amber-400 font-bold">★</span>
+                        <span><strong>Partida Rápida:</strong> Se juegan <strong>3 rondas completas</strong> (todos actúan/dibujan al menos una vez) y gana el mayor puntaje.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-amber-400 font-bold">⚡</span>
+                        <span><strong>Desempate:</strong> Ronda de muerte súbita con una tarjeta de la Categoría 3.</span>
+                    </li>
+                </ul>
+            </section>
+        </div>
+
+        <!-- 4. Mecánica de los Turnos por Categoría -->
+        <section class="rounded-3xl bg-[#0f1733] border border-pink-500/30 p-6 sm:p-8 mb-8 glow-magenta">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
+                <div>
+                    <h3 class="text-2xl font-black text-pink-400">4. Mecánica de los Turnos según Categoría</h3>
+                    <p class="text-slate-300 text-sm">Un integrante pasa al frente, gira la ruleta sin mostrar la palabra a su equipo y aplica la estrategia asignada:</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="rounded-2xl bg-[#18234b] border-l-4 border-[#00f5d4] p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-cyan-400/20 text-cyan-300">Categoría 1 (1–10)</span>
+                        <span class="text-xl">🎭</span>
+                    </div>
+                    <h4 class="font-bold text-white text-lg mb-1">Rueda de Plutchik</h4>
+                    <p class="text-xs font-bold text-cyan-300 uppercase mb-2">Modalidad: Dramatización Obligatoria</p>
+                    <p class="text-slate-300 text-sm">Emociones primarias y sus grados de intensidad (ej. <em>Serenidad vs. Éxtasis</em>). Ideal para actuar cambios graduales de postura y energía facial.</p>
+                </div>
+
+                <div class="rounded-2xl bg-[#18234b] border-l-4 border-[#fee440] p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-amber-400/20 text-amber-300">Categoría 2 (11–20)</span>
+                        <span class="text-xl">🎨</span>
+                    </div>
+                    <h4 class="font-bold text-white text-lg mb-1">Emociones vs. Sentimientos</h4>
+                    <p class="text-xs font-bold text-amber-300 uppercase mb-2">Modalidad: Pictionary (Dibujo) Obligatorio</p>
+                    <p class="text-slate-300 text-sm">Contrasta reacciones súbitas con estados duraderos (ej. <em>Susto vs. Rencor</em>). Obliga a usar metáforas visuales de impacto inmediato o paso del tiempo.</p>
+                </div>
+
+                <div class="rounded-2xl bg-[#18234b] border-l-4 border-[#f72585] p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-pink-400/20 text-pink-300">Categoría 3 (21–30)</span>
+                        <span class="text-xl">🎲</span>
+                    </div>
+                    <h4 class="font-bold text-white text-lg mb-1">Díadas y Expresiones</h4>
+                    <p class="text-xs font-bold text-pink-300 uppercase mb-2">Modalidad: Elección o Ruleta Dual</p>
+                    <p class="text-slate-300 text-sm">Combinaciones emocionales complejas (ej. <em>Desprecio, Alivio, Optimismo</em>). El equipo rival elige o sortea en pantalla si se actúa o se dibuja.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Reglas de Oro por Modalidad -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <section class="rounded-3xl bg-gradient-to-br from-[#12263a] to-[#0f1733] border border-cyan-400/40 p-6">
+                <h3 class="text-xl font-black text-cyan-300 flex items-center gap-2 mb-4">
+                    <span>🎭</span> Reglas de Oro: Dramatización (Mímica)
+                </h3>
+                <ul class="space-y-3 text-sm text-slate-200">
+                    <li class="p-3 rounded-xl bg-black/25 border border-cyan-500/20">
+                        <strong class="text-cyan-300 block mb-0.5">🔇 Prohibido emitir sonidos:</strong>
+                        Cero palabras, suspiros audibles, risas forzadas, gruñidos ni onomatopeyas. Todo se comunica con postura y rostro.
+                    </li>
+                    <li class="p-3 rounded-xl bg-black/25 border border-cyan-500/20">
+                        <strong class="text-cyan-300 block mb-0.5">🚫 Sin objetos ni utilería:</strong>
+                        No puedes usar sillas, ropa, paredes ni objetos reales; todo debe representarse en el aire.
+                    </li>
+                    <li class="p-3 rounded-xl bg-black/25 border border-cyan-500/20">
+                        <strong class="text-cyan-300 block mb-0.5">👉 Sin señalar:</strong>
+                        Prohibido señalar a jugadores presentes o partes del cuerpo para dar pistas indirectas.
+                    </li>
+                </ul>
+            </section>
+
+            <section class="rounded-3xl bg-gradient-to-br from-[#2a1936] to-[#0f1733] border border-amber-400/40 p-6">
+                <h3 class="text-xl font-black text-amber-300 flex items-center gap-2 mb-4">
+                    <span>🎨</span> Reglas de Oro: Dibujo (Pictionary)
+                </h3>
+                <ul class="space-y-3 text-sm text-slate-200">
+                    <li class="p-3 rounded-xl bg-black/25 border border-amber-500/20">
+                        <strong class="text-amber-300 block mb-0.5">🔤 Cero texto y números:</strong>
+                        Prohibido escribir letras, palabras, siglas o números en el papel.
+                    </li>
+                    <li class="p-3 rounded-xl bg-black/25 border border-amber-500/20">
+                        <strong class="text-amber-300 block mb-0.5">😐 Rostro neutro y en silencio:</strong>
+                        El dibujante no puede hablar, hacer muecas ni asentir con la cabeza mientras traza.
+                    </li>
+                    <li class="p-3 rounded-xl bg-black/25 border border-amber-500/20">
+                        <strong class="text-amber-300 block mb-0.5">✨ Convenciones visuales permitidas:</strong>
+                        Para <em>Emociones</em> usa rayos, chispas y líneas de movimiento. Para <em>Sentimientos</em> usa relojes, calendarios o nubes de recuerdo.
+                    </li>
+                </ul>
+            </section>
+        </div>
+
+        <!-- 6. Tiempos por Ronda y 7. Sistema de Puntuación -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+            <section class="lg:col-span-5 rounded-3xl bg-[#0f1733] border border-indigo-400/30 p-6">
+                <h3 class="text-xl font-black text-indigo-300 flex items-center gap-2 mb-4">
+                    <span>⏱️</span> Tiempos por Ronda
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#19244d] border border-indigo-400/20">
+                        <div>
+                            <p class="font-bold text-white">1. Lectura y Preparación</p>
+                            <p class="text-xs text-slate-300">Identifica si es emoción/sentimiento y planea</p>
+                        </div>
+                        <span class="px-3 py-1.5 rounded-xl font-black text-sm bg-cyan-400/20 text-cyan-300 border border-cyan-400/40">10 seg</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#19244d] border border-indigo-400/20">
+                        <div>
+                            <p class="font-bold text-white">2. Ronda Regular (Equipo activo)</p>
+                            <p class="text-xs text-slate-300">Tiempo exclusivo para adivinar el concepto</p>
+                        </div>
+                        <span class="px-3 py-1.5 rounded-xl font-black text-sm bg-amber-400/20 text-amber-300 border border-amber-400/40">60 seg</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#19244d] border border-indigo-400/20">
+                        <div>
+                            <p class="font-bold text-white">3. Oportunidad de Robo</p>
+                            <p class="text-xs text-slate-300">Un intento consensuado de los rivales</p>
+                        </div>
+                        <span class="px-3 py-1.5 rounded-xl font-black text-sm bg-pink-400/20 text-pink-300 border border-pink-400/40">15 seg</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="lg:col-span-7 rounded-3xl bg-[#0f1733] border border-emerald-400/30 p-6">
+                <h3 class="text-xl font-black text-emerald-300 flex items-center gap-2 mb-4">
+                    <span>📊</span> Sistema de Puntuación
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div class="p-3.5 rounded-2xl bg-[#18244a] border border-emerald-500/30 flex items-start justify-between gap-3">
+                        <div>
+                            <p class="font-bold text-white">Acierto exacto</p>
+                            <p class="text-xs text-slate-300">Nombre exacto dentro de los 60s.</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg font-black bg-emerald-400 text-slate-950 shrink-0">+2 pts</span>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-[#18244a] border border-cyan-500/30 flex items-start justify-between gap-3">
+                        <div>
+                            <p class="font-bold text-white">Sinónimo válido</p>
+                            <p class="text-xs text-slate-300">Acierta raíz pero no intensidad (ej. <em>Miedo</em> por <em>Terror</em>).</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg font-black bg-cyan-400 text-slate-950 shrink-0">+1 pt</span>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-[#18244a] border border-amber-500/30 flex items-start justify-between gap-3">
+                        <div>
+                            <p class="font-bold text-white">Bono Teoría Emocional</p>
+                            <p class="text-xs text-slate-300">Define en 5s si es <em>Emoción</em>, <em>Sentimiento</em> o <em>Díada</em>.</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg font-black bg-amber-400 text-slate-950 shrink-0">+1 pt</span>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-[#18244a] border border-purple-500/30 flex items-start justify-between gap-3">
+                        <div>
+                            <p class="font-bold text-white">Robo de punto</p>
+                            <p class="text-xs text-slate-300">Equipo rival acierta exacto tras agotarse los 60s.</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg font-black bg-purple-400 text-slate-950 shrink-0">+1 pt</span>
+                    </div>
+                    <div class="sm:col-span-2 p-3 rounded-2xl bg-rose-950/50 border border-rose-500/40 flex items-center justify-between gap-3">
+                        <div>
+                            <p class="font-bold text-rose-300">Penalización por infracción</p>
+                            <p class="text-xs text-rose-200/80">Hacer sonidos en mímica, escribir letras o gesticular al dibujar. Termina el turno.</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg font-black bg-rose-500 text-white shrink-0">-1 pt</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="text-center pb-6">
+            <button onclick="startGame()" class="btn-vibrant px-10 py-4 rounded-2xl font-black text-xl uppercase tracking-wider bg-gradient-to-r from-[#f72585] via-[#9b5de5] to-[#00f5d4] text-white shadow-2xl shadow-pink-500/30">
+                🎮 ¡COMENZAR PARTIDA AHORA!
+            </button>
+        </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- VISTA 2: TABLERO DE JUEGO INTERACTIVO                                 -->
+    <!-- ===================================================================== -->
+    <section id="gameView" class="hidden max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- COLUMNA IZQUIERDA (7 cols): RULETA, ESTRATEGIA, TARJETA Y CRONÓMETRO -->
+            <div class="lg:col-span-7 space-y-5">
+                
+                <!-- Barra Superior de Mazo y Ruleta -->
+                <div class="rounded-3xl bg-[#0f1733] border border-cyan-400/30 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-cyan-400/15 border border-cyan-400/40 flex items-center justify-center text-cyan-300 font-black text-lg" id="remainingCountBadge">
+                            30
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-indigo-300 font-bold">Mazo sin repetición</p>
+                            <p class="text-sm font-semibold text-white"><span id="remainingText">30 de 30</span> tarjetas disponibles</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <button id="spinBtn" onclick="spinRoulette()" class="btn-vibrant px-5 py-3 rounded-2xl font-black text-sm sm:text-base bg-gradient-to-r from-[#00f5d4] to-[#00bbf9] text-slate-950 shadow-lg shadow-cyan-500/25 flex items-center gap-2">
+                            <span id="spinIcon">🎡</span>
+                            <span>Girar Ruleta / Nueva Tarjeta</span>
+                        </button>
+                        <button onclick="resetDeck()" class="p-3 rounded-2xl bg-[#1b2752] hover:bg-[#25356e] text-indigo-200 border border-indigo-400/30 text-sm font-bold transition" title="Barajar de nuevo las 30 tarjetas">
+                            🔄 Reiniciar Mazo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel de Estrategia / Modalidad Dinámica -->
+                <div id="strategyPanel" class="rounded-3xl bg-[#131d42] border-2 border-indigo-500/30 p-4 sm:p-5 transition-all">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span id="strategyEmoji" class="text-3xl">✨</span>
+                            <div>
+                                <span id="strategyBadge" class="inline-block text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-indigo-500/30 text-indigo-200 mb-1">
+                                    Esperando tarjeta
+                                </span>
+                                <h3 id="strategyTitle" class="text-lg sm:text-xl font-black text-white">
+                                    Gira la ruleta para sortear un concepto
+                                </h3>
+                            </div>
+                        </div>
+
+                        <!-- Selector de Modalidad (Dramatización vs Pictionary) -->
+                        <div id="modeSelectorContainer" class="hidden flex flex-wrap items-center gap-2">
+                            <button onclick="defineModeRandomly()" class="btn-vibrant px-3.5 py-2 rounded-xl font-extrabold text-xs bg-gradient-to-r from-[#f72585] to-[#fee440] text-slate-950 shadow-lg">
+                                🎲 Sortear
+                            </button>
+                            <button onclick="setSpecificMode('dramatizacion')" class="px-3 py-2 rounded-xl font-bold text-xs bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-400/40 transition">
+                                🎭 Dramatización
+                            </button>
+                            <button onclick="setSpecificMode('pictionary')" class="px-3 py-2 rounded-xl font-bold text-xs bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-400/40 transition">
+                                🎨 Pictionary
+                            </button>
+                        </div>
+                    </div>
+                    <p id="strategyTip" class="mt-2.5 text-xs sm:text-sm text-indigo-200 bg-black/25 rounded-xl p-3 border border-white/5">
+                        💡 <strong>Tip:</strong> Usa el interruptor <em>Modo Proyector</em> arriba para ocultar la palabra cuando proyectes en pantalla grande.
+                    </p>
+                </div>
+
+                <!-- TARJETA INTERACTIVA (FRENTE Y REVERSO SIN CONFLICTOS 3D) -->
+                <div class="card-stage w-full">
+                    
+                    <!-- CARA FRONTAL -->
+                    <div id="cardFront" class="card-face bg-gradient-to-br from-[#16224a] via-[#0f1733] to-[#1e163b] border-2 border-cyan-400/50 p-5 sm:p-7 flex flex-col justify-between min-h-[390px] shadow-2xl">
+                        <!-- Etiquetas superiores -->
+                        <div class="flex items-center justify-between gap-2">
+                            <span id="cardNumberTag" class="px-3 py-1 rounded-full text-xs font-black bg-white/10 text-cyan-300 border border-cyan-400/30">
+                                TARJETA #--
+                            </span>
+                            <span id="cardCategoryTag" class="px-3 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-200 border border-purple-400/30">
+                                Categoría --
+                            </span>
+                        </div>
+
+                        <!-- Zona Central: Escudo de Privacidad vs Palabra Secreta -->
+                        <div class="my-6 text-center px-2">
+                            <p id="cardFrontSub" class="text-xs uppercase tracking-[0.2em] text-indigo-300 font-bold mb-3">
+                                Concepto a representar
+                            </p>
+
+                            <!-- Escudo de Privacidad (#privacyShield) -->
+                            <div id="privacyShield" class="hidden mx-auto max-w-md rounded-2xl bg-[#070c1f] border-2 border-dashed border-amber-400/70 p-5 shadow-inner">
+                                <div class="flex items-center justify-center gap-2 text-amber-300 font-black text-base sm:text-lg mb-1">
+                                    <span>🛡️ PALABRA OCULTA (MODO PROYECTOR)</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mb-4">
+                                    Solo para el intérprete. ¡Pide a tu equipo que mire hacia otro lado antes de revelar!
+                                </p>
+                                <div class="flex flex-wrap items-center justify-center gap-2.5">
+                                    <button 
+                                        id="holdPeekBtn"
+                                        onmousedown="startHoldPeek(event)" 
+                                        onmouseup="stopHoldPeek()" 
+                                        onmouseleave="stopHoldPeek()"
+                                        ontouchstart="startHoldPeek(event)" 
+                                        ontouchend="stopHoldPeek()"
+                                        ontouchcancel="stopHoldPeek()"
+                                        class="select-none cursor-pointer px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-r from-[#00f5d4] to-[#00bbf9] text-slate-950 shadow-lg active:scale-95 transition">
+                                        👁️ Mantener para ver
+                                    </button>
+                                    <button 
+                                        id="timedPeekBtn"
+                                        onclick="triggerTimedPeek()" 
+                                        class="btn-vibrant cursor-pointer px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm bg-amber-400/20 hover:bg-amber-400/35 text-amber-300 border border-amber-400/50">
+                                        ⏱️ Ver 4 seg
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Contenedor de la Palabra Secreta (#wordContainer & #cardWord) -->
+                            <div id="wordContainer" class="block">
+                                <h2 id="cardWord" class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-[0_2px_14px_rgba(0,245,212,0.4)]">
+                                    ¡Pulsa Girar Ruleta!
+                                </h2>
+                                <!-- Barra de auto-ocultado de 4 segundos -->
+                                <div id="timedPeekBarContainer" class="hidden max-w-xs mx-auto mt-3">
+                                    <p class="text-[11px] font-bold text-amber-300 mb-1">
+                                        Se ocultará automáticamente en <span id="timedPeekSeconds">4</span>s...
+                                    </p>
+                                    <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                        <div id="timedPeekProgress" class="h-full bg-amber-400 transition-all duration-100" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="cardFrontModePill" class="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider bg-indigo-950/90 text-indigo-300 border border-indigo-400/30">
+                                Listo para jugar
+                            </div>
+                        </div>
+
+                        <!-- Pie de tarjeta frontal y botón de volteo -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10">
+                            <span id="flipLockHint" class="text-xs text-amber-300/90 font-medium flex items-center gap-1.5">
+                                🔒 Se desbloquea al terminar el tiempo o acertar
+                            </span>
+
+                            <div class="flex items-center gap-2 ml-auto">
+                                <button id="forceFlipBtn" onclick="flipCard(true)" class="hidden px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-slate-200 border border-white/15 transition" title="Desbloquear y ver explicación ahora">
+                                    👁️ Ver ya
+                                </button>
+                                <button id="flipCardBtn" onclick="flipCard()" disabled class="btn-vibrant px-5 py-2.5 rounded-xl font-black text-sm bg-gradient-to-r from-[#f72585] to-[#9b5de5] text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-lg flex items-center gap-2">
+                                    <span>🔄 Voltear Tarjeta</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARA TRASERA (Explicación detallada de palabra y categoría) -->
+                    <div id="cardBack" class="hidden card-face bg-gradient-to-br from-[#1d1538] via-[#131d42] to-[#0f293a] border-2 border-pink-500/60 p-6 sm:p-7 flex flex-col justify-between min-h-[390px] shadow-2xl">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <span id="backClassificationBadge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                                    Clasificación
+                                </span>
+                                <button onclick="flipCard()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20">
+                                    ↩ Volver al frente
+                                </button>
+                            </div>
+
+                            <h3 id="backWordTitle" class="text-2xl sm:text-3xl font-black text-white mb-3">
+                                Concepto
+                            </h3>
+
+                            <!-- Explicación de la palabra y expresión -->
+                            <div class="p-3.5 rounded-2xl bg-black/30 border border-pink-400/25 mb-3">
+                                <p class="text-[11px] font-black uppercase tracking-wider text-pink-300 mb-1">📖 Definición y Expresión Corporal / Visual</p>
+                                <p id="backExplanationText" class="text-sm text-slate-100 leading-relaxed">
+                                    Aquí aparecerá la explicación detallada del concepto.
+                                </p>
+                            </div>
+
+                            <!-- Explicación de la categoría y estrategia -->
+                            <div class="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-400/25">
+                                <p id="backCategoryTitle" class="text-[11px] font-black uppercase tracking-wider text-cyan-300 mb-1">🧭 Categoría y Estrategia</p>
+                                <p id="backCategoryExplanation" class="text-xs sm:text-sm text-cyan-100 leading-relaxed">
+                                    Explicación de la categoría.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 mt-3 border-t border-white/10 flex items-center justify-between text-xs text-indigo-300">
+                            <span>💡 Bono +1 pt si el equipo identifica su tipo</span>
+                            <button onclick="spinRoulette()" class="font-bold text-cyan-300 hover:underline">Siguiente tarjeta →</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- CRONÓMETRO INTEGRADO POR FASES -->
+                <div class="rounded-3xl bg-[#0f1733] border border-purple-400/30 p-5 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="text-base font-black text-white flex items-center gap-2">
+                                <span>⏱️</span> Cronómetro de Ronda
+                            </h3>
+                            <p id="timerPhaseLabel" class="text-xs text-indigo-300 font-medium">Selecciona una fase para iniciar</p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="setTimerPhase(10, 'Fase 1: Preparación (10s)')" class="phase-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 transition">
+                                10s Prep
+                            </button>
+                            <button onclick="setTimerPhase(60, 'Fase 2: Ronda Regular (60s)')" class="phase-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 transition">
+                                60s Ronda
+                            </button>
+                            <button onclick="setTimerPhase(15, 'Fase 3: Robo de Punto (15s)')" class="phase-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-400/40 transition">
+                                15s Robo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4 mb-4">
+                        <div id="timerDisplay" class="text-4xl sm:text-5xl font-black tabular-nums text-cyan-300 min-w-[105px]">
+                            01:00
+                        </div>
+                        <div class="flex-1">
+                            <div class="w-full h-4 bg-[#070c1f] rounded-full overflow-hidden border border-white/10 p-0.5">
+                                <div id="timerProgressBar" class="h-full rounded-full bg-gradient-to-r from-[#00f5d4] to-[#00bbf9] transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <button id="startTimerBtn" onclick="startTimer()" class="btn-vibrant px-4 py-2 rounded-xl font-bold text-xs sm:text-sm bg-emerald-500 text-slate-950 shadow-md">
+                                ▶ Iniciar
+                            </button>
+                            <button id="pauseTimerBtn" onclick="pauseTimer()" class="btn-vibrant px-4 py-2 rounded-xl font-bold text-xs sm:text-sm bg-amber-400 text-slate-950 shadow-md">
+                                ⏸ Pausar
+                            </button>
+                            <button onclick="resetTimer()" class="px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-white/10 hover:bg-white/20 text-white border border-white/15">
+                                ↺ Reiniciar
+                            </button>
+                        </div>
+
+                        <button onclick="completeTurnEarly()" class="btn-vibrant px-4 py-2 rounded-xl font-extrabold text-xs sm:text-sm bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md">
+                            ✅ Acertaron / Revelar respuesta
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COLUMNA DERECHA (5 cols): MARCADOR DINÁMICO DE EQUIPOS -->
+            <div class="lg:col-span-5 space-y-5">
+                <div class="rounded-3xl bg-[#0f1733] border border-pink-500/30 p-5 sm:p-6 shadow-xl">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h2 class="text-xl font-black text-white flex items-center gap-2">
+                                <span>🏆</span> Marcador de Equipos
+                            </h2>
+                            <p class="text-xs text-indigo-300">Meta de victoria: <strong class="text-amber-300">20 puntos</strong> (Haz clic en un nombre para editarlo)</p>
+                        </div>
+                        <button onclick="addTeam()" class="btn-vibrant px-3.5 py-2 rounded-xl font-extrabold text-xs bg-gradient-to-r from-[#00f5d4] to-[#00bbf9] text-slate-950 shadow-md flex items-center gap-1.5">
+                            <span>+ Agregar Equipo</span>
+                        </button>
+                    </div>
+
+                    <div id="teamsContainer" class="space-y-3.5"></div>
+
+                    <div class="mt-5 pt-4 border-t border-white/10 grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+                        <div class="bg-black/25 p-2 rounded-lg"><strong class="text-emerald-400">+2 Exacto:</strong> Concepto literal en 60s</div>
+                        <div class="bg-black/25 p-2 rounded-lg"><strong class="text-cyan-400">+1 Sinónimo:</strong> Raíz emocional</div>
+                        <div class="bg-black/25 p-2 rounded-lg"><strong class="text-amber-400">+1 Teoría:</strong> Emoción vs Sentimiento</div>
+                        <div class="bg-black/25 p-2 rounded-lg"><strong class="text-rose-400">-1 Falta:</strong> Sonido, letra o gesto</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- MODAL DE VICTORIA -->
+    <div id="victoryModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="max-w-md w-full rounded-3xl bg-gradient-to-br from-[#19234d] via-[#0f1733] to-[#2a1238] border-2 border-amber-400 p-8 text-center shadow-2xl">
+            <div class="text-6xl mb-4 animate-bounce">🏆</div>
+            <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                ¡Meta de 20 Puntos Alcanzada!
+            </span>
+            <h2 id="winnerTeamName" class="text-3xl font-black text-white mt-3 mb-2">
+                ¡Equipo Ganador!
+            </h2>
+            <p id="winnerScoreText" class="text-indigo-200 text-sm mb-6">
+                Ha alcanzado los 20 puntos demostrando maestría emocional.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button onclick="closeVictoryModal()" class="px-5 py-3 rounded-xl font-bold text-sm bg-white/10 hover:bg-white/20 text-white border border-white/20">
+                    Seguir jugando
+                </button>
+                <button onclick="resetAllScores()" class="btn-vibrant px-5 py-3 rounded-xl font-black text-sm bg-gradient-to-r from-[#00f5d4] to-[#f72585] text-slate-950">
+                    Nueva Partida (Reiniciar puntos)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // BASE DE DATOS DE LAS 30 TARJETAS (PLUTCHIK, EMOCIÓN VS SENTIMIENTO, DÍADAS)
+        // =========================================================================
+        const CARDS_DATA = [
+            // CATEGORÍA 1: Emociones Primarias y sus Intensidades (Rueda de Plutchik) -> Dramatización
+            {
+                id: 1,
+                word: "Éxtasis",
+                subtitle: "Alegría máxima",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Máxima)",
+                defaultMode: "dramatizacion",
+                explanation: "Reacción explosiva de euforia y plenitud. Se expresa con saltos, brazos abiertos hacia arriba, pecho expandido y una sonrisa muy amplia con los ojos entrecerrados.",
+                categoryGuide: "Al ser de la Rueda de Plutchik, se juega con DRAMATIZACIÓN. Muestra el pico máximo de energía de la alegría sin emitir ningún sonido."
+            },
+            {
+                id: 2,
+                word: "Serenidad",
+                subtitle: "Alegría suave",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Baja)",
+                defaultMode: "dramatizacion",
+                explanation: "Calma, paz interior y bienestar ligero. Se manifiesta con postura relajada, hombros caídos sin tensión, respiración pausada y una sonrisa apenas esbozada.",
+                categoryGuide: "Al ser de la Rueda de Plutchik, se juega con DRAMATIZACIÓN. Contrasta con el éxtasis usando movimientos muy lentos y suaves."
+            },
+            {
+                id: 3,
+                word: "Terror",
+                subtitle: "Miedo extremo",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Máxima)",
+                defaultMode: "dramatizacion",
+                explanation: "Parálisis o impulso de huida súbita ante un peligro inminente. Ojos muy abiertos mostrando la esclerótica, boca abierta en un grito mudo y cuerpo encogido hacia atrás.",
+                categoryGuide: "Categoría 1: DRAMATIZACIÓN. Usa tensión muscular extrema en rostro y manos para reflejar el grado más alto del miedo."
+            },
+            {
+                id: 4,
+                word: "Aprensión",
+                subtitle: "Miedo leve",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Baja)",
+                defaultMode: "dramatizacion",
+                explanation: "Inquietud anticipatoria o cautela ante algo incierto. Se nota en la mirada esquiva, manos frotándose entre sí, hombros ligeramente elevados y pasos dubitativos.",
+                categoryGuide: "Categoría 1: DRAMATIZACIÓN. Actúa la duda y el nerviosismo sutil antes de que ocurra algo, sin exagerar como en el terror."
+            },
+            {
+                id: 5,
+                word: "Furia",
+                subtitle: "Ira intensa",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Máxima)",
+                defaultMode: "dramatizacion",
+                explanation: "Descarga intensa de agresividad y energía. Ceño profundamente fruncido, mandíbula apretada, puños cerrados con fuerza y torso inclinado hacia adelante en actitud confrontativa.",
+                categoryGuide: "Categoría 1: DRAMATIZACIÓN. Proyecta máxima tensión corporal y facial en completo silencio."
+            },
+            {
+                id: 6,
+                word: "Enfado / Fastidio",
+                subtitle: "Ira leve",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Baja)",
+                defaultMode: "dramatizacion",
+                explanation: "Irritación contenida o molestia cotidiana. Se expresa con un suspiro visual (sin sonido), ojos en blanco, brazos cruzados y golpeteo impaciente con el pie.",
+                categoryGuide: "Categoría 1: DRAMATIZACIÓN. Muestra impaciencia cotidiana y contenida, diferenciándola de la explosión de la furia."
+            },
+            {
+                id: 7,
+                word: "Asombro",
+                subtitle: "Sorpresa máxima",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Máxima)",
+                defaultMode: "dramatizacion",
+                explanation: "Impacto súbito ante algo totalmente inesperado. Cejas arqueadas al máximo, paso hacia atrás, cuerpo congelado un instante y manos llevadas al rostro o al pecho.",
+                categoryGuide: "Categoría 1: DRAMATIZACIÓN. Enfatiza el cambio brusco de estado: de neutro a impacto total en una fracción de segundo."
+            },
+            {
+                id: 8,
+                word: "Distracción",
+                subtitle: "Sorpresa mínima",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Baja)",
+                defaultMode: "dramatizacion",
+                explanation: "Pérdida momentánea del foco de atención. Mirada perdida hacia un lado, cabeza ligeramente ladeada, parpadeo lento y expresión neutra desconectada del entorno.",
+                categoryGuide: "Categoría 1: DRAMATIZACIÓN. Representa cómo la atención se desvía suavemente hacia un estímulo invisible."
+            },
+            {
+                id: 9,
+                word: "Aborrecimiento / Asco profundo",
+                subtitle: "Aversión máxima",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Máxima)",
+                defaultMode: "dramatizacion",
+                explanation: "Rechazo visceral físico o moral. Nariz arrugada, labio superior elevado, cabeza girada hacia un lado y manos empujando o alejando algo imaginario con repulsión.",
+                categoryGuide: "Categoría 1: DRAMATIZACIÓN. La expresión facial alrededor de la nariz y la boca es clave para que tu equipo lo identifique."
+            },
+            {
+                id: 10,
+                word: "Aburrimiento",
+                subtitle: "Aversión leve",
+                category: 1,
+                categoryName: "Categoría 1: Rueda de Plutchik",
+                classification: "Emoción Primaria (Intensidad Baja)",
+                defaultMode: "dramatizacion",
+                explanation: "Falta de estímulo e interés. Cabeza apoyada pesadamente sobre una mano, postura encorvada, bostezos silenciosos y mirada apagada mirando un reloj imaginario.",
+                categoryGuide: "Categoría 1: DRAMATIZACIÓN. Usa la pesadez del cuerpo y la falta de energía para comunicar tedio."
+            },
+
+            // CATEGORÍA 2: Emociones vs. Sentimientos -> Dibujo / Pictionary
+            {
+                id: 11,
+                word: "Susto",
+                subtitle: "Emoción (Reacción inmediata)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Emoción (Reacción Súbita)",
+                defaultMode: "pictionary",
+                explanation: "Sobresalto físico instantáneo ante un estímulo repentino. Respingo del cuerpo en el aire, cabellos erizados y manos levantadas en defensa.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja un personaje saltando con líneas de movimiento rápido, rayos o signos de exclamación (¡!) para indicar inmediatez."
+            },
+            {
+                id: 12,
+                word: "Rencor",
+                subtitle: "Sentimiento (Estado duradero)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Sentimiento (Estado Prolongado)",
+                defaultMode: "pictionary",
+                explanation: "Resentimiento guardado y rumiado en el tiempo tras una ofensa. Mirada fija y fría hacia alguien que se aleja, mientras se guarda una herida en el pecho.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Usa un calendario o reloj junto a un corazón con una grieta o nube oscura para mostrar que dura en el tiempo."
+            },
+            {
+                id: 13,
+                word: "Rubor / Vergüenza súbita",
+                subtitle: "Emoción (Reacción inmediata)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Emoción (Reacción Súbita)",
+                defaultMode: "pictionary",
+                explanation: "Reacción fisiológica inmediata al sentirse expuesto o cometer un error en público. Cubrirse la cara con ambas manos, encoger los hombros y mejillas encendidas.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja un rostro tapado por manos con líneas de calor/sonrojo en las mejillas y ojos mirando alrededor."
+            },
+            {
+                id: 14,
+                word: "Nostalgia",
+                subtitle: "Sentimiento (Estado duradero)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Sentimiento (Estado Prolongado)",
+                defaultMode: "pictionary",
+                explanation: "Añoranza dulce y melancólica por momentos o personas del pasado. Sostener una fotografía antigua contra el corazón con una sonrisa triste.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja una nube de pensamiento con una foto o escena del pasado y una flecha hacia atrás en el tiempo."
+            },
+            {
+                id: 15,
+                word: "Euforia",
+                subtitle: "Emoción (Reacción inmediata)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Emoción (Reacción Súbita)",
+                defaultMode: "pictionary",
+                explanation: "Descarga repentina de adrenalina, entusiasmo y placer. Levantar ambos brazos en señal de triunfo celebrando una victoria instantánea.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja una figura saltando rodeada de chispas, estrellas y líneas cinéticas de explosión."
+            },
+            {
+                id: 16,
+                word: "Gratitud",
+                subtitle: "Sentimiento (Estado duradero)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Sentimiento (Estado Prolongado)",
+                defaultMode: "pictionary",
+                explanation: "Reconocimiento afectuoso y sostenido hacia alguien por un bien recibido. Llevar ambas manos al pecho, inclinar levemente la cabeza y sonreír con calidez.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja dos personas: una entregando un regalo o ayuda y la otra con manos en el pecho y un corazón radiante."
+            },
+            {
+                id: 17,
+                word: "Pánico",
+                subtitle: "Emoción (Reacción inmediata)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Emoción (Reacción Súbita)",
+                defaultMode: "pictionary",
+                explanation: "Respuesta fisiológica aguda de pérdida de control y urgencia por escapar. Respiración agitada, manos en la cabeza y movimientos erráticos buscando salida.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja una persona corriendo con múltiples líneas de temblor, gotas de sudor y signos de alarma."
+            },
+            {
+                id: 18,
+                word: "Resignación",
+                subtitle: "Sentimiento (Estado duradero)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Sentimiento (Estado Prolongado)",
+                defaultMode: "pictionary",
+                explanation: "Aceptación pasiva y tranquila tras una pérdida o situación inevitable. Exhalar profundamente, dejar caer los brazos a los lados y mirar sin resistencia.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja una persona sentada con hombros caídos frente a una puerta cerrada o reloj de arena ya vacío."
+            },
+            {
+                id: 19,
+                word: "Deslumbramiento / Fascinación",
+                subtitle: "Emoción (Reacción inmediata)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Emoción (Reacción Súbita)",
+                defaultMode: "pictionary",
+                explanation: "Atracción magnética e inmediata ante algo extraordinario o nuevo. Inclinarse hacia adelante con los ojos muy brillantes y la boca ligeramente abierta.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja un rostro con estrellas brillantes en los ojos mirando un objeto resplandeciente."
+            },
+            {
+                id: 20,
+                word: "Compasión",
+                subtitle: "Sentimiento (Estado duradero)",
+                category: 2,
+                categoryName: "Categoría 2: Emociones vs. Sentimientos",
+                classification: "Sentimiento (Estado Prolongado)",
+                defaultMode: "pictionary",
+                explanation: "Conexión profunda y sostenida con el dolor ajeno acompañada del deseo de aliviarlo. Acercarse suavemente a otro y ofrecer una mano abierta con ternura.",
+                categoryGuide: "Categoría 2: PICTIONARY (DIBUJO). Dibuja una persona caída o triste y otra inclinándose para cubrirla o tenderle la mano con un corazón."
+            },
+
+            // CATEGORÍA 3: Expresiones Corporales y Emociones Combinadas (Díadas) -> A elegir / Sortear
+            {
+                id: 21,
+                word: "Desprecio",
+                subtitle: "Ira + Asco (Díada)",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Díada Emocional (Ira + Asco)",
+                defaultMode: "eleccion",
+                explanation: "Sentimiento de superioridad moral y rechazo hacia algo o alguien. Comisura de un solo lado de la boca levantada (mueca asimétrica), mentón en alto y mirada por encima del hombro.",
+                categoryGuide: "Categoría 3: El equipo rival elige o sortea si se actúa o se dibuja. Clave: la sonrisa ladeada de superioridad."
+            },
+            {
+                id: 22,
+                word: "Remordimiento",
+                subtitle: "Tristeza + Asco (Díada)",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Díada Emocional (Tristeza + Asco)",
+                defaultMode: "eleccion",
+                explanation: "Culpa pesada y autoreproche por un acto propio del pasado. Cabeza gacha sostenida por ambas manos, codos apoyados en las rodillas y torso encorvado.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Representa el peso de una acción pasada sobre los hombros."
+            },
+            {
+                id: 23,
+                word: "Optimismo",
+                subtitle: "Anticipación + Alegría (Díada)",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Díada Emocional (Anticipación + Alegría)",
+                defaultMode: "eleccion",
+                explanation: "Expectativa positiva y confiada hacia el futuro. Postura erguida, pecho abierto, mirada hacia el horizonte elevado y paso firme hacia adelante.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Muestra la mirada puesta en un horizonte luminoso o un camino ascendente."
+            },
+            {
+                id: 24,
+                word: "Decepción",
+                subtitle: "Sorpresa + Tristeza (Díada)",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Díada Emocional (Sorpresa + Tristeza)",
+                defaultMode: "eleccion",
+                explanation: "Caída abrupta de una expectativa que se creía segura. Detenerse en seco, dejar caer los hombros de golpe y bajar la mirada con expresión apagada.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Muestra el contraste entre esperar algo grande y recibir algo vacío o roto."
+            },
+            {
+                id: 25,
+                word: "Sumisión",
+                subtitle: "Confianza + Miedo (Díada)",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Díada Emocional (Confianza + Miedo)",
+                defaultMode: "eleccion",
+                explanation: "Obediencia o acatamiento por temor a una autoridad. Postura encogida para ocupar menos espacio, cabeza baja, manos entrelazadas al frente y evitar contacto visual.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Contrasta una figura pequeña y encogida frente a otra dominante."
+            },
+            {
+                id: 26,
+                word: "Curiosidad",
+                subtitle: "Confianza + Sorpresa (Díada)",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Díada Emocional (Confianza + Sorpresa)",
+                defaultMode: "eleccion",
+                explanation: "Interés activo y abierto por explorar lo desconocido. Cabeza inclinada hacia un lado, cejas levemente levantadas y cuerpo estirado para observar de cerca.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Usa gestos o dibujos de asomarse por una esquina o usar una lupa."
+            },
+            {
+                id: 27,
+                word: "Desesperación",
+                subtitle: "Miedo + Tristeza (Díada)",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Díada Emocional (Miedo + Tristeza)",
+                defaultMode: "eleccion",
+                explanation: "Sensación angustiosa de no encontrar salida ni solución. Caminar de un lado a otro llevándose las manos a la cara o tirando suavemente del cabello.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Refleja agitación combinada con angustia sin salida."
+            },
+            {
+                id: 28,
+                word: "Orgullo",
+                subtitle: "Alegría + Triunfo (Díada)",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Díada Emocional (Alegría + Ira/Triunfo)",
+                defaultMode: "eleccion",
+                explanation: "Satisfacción profunda por un logro o valía propia. Espalda muy recta, mentón elevado, manos apoyadas en la cintura (pose de poder) y sonrisa amplia.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Postura expansiva, pecho inflado y actitud de logro."
+            },
+            {
+                id: 29,
+                word: "Inseguridad / Timidez",
+                subtitle: "Expresión de retraimiento",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Expresión Corporal Social",
+                defaultMode: "eleccion",
+                explanation: "Duda sobre uno mismo frente a la mirada de otros. Cruzar un brazo sobre el torso sujetando el codo contrario (barrera protectora), balancear el peso y mirar al suelo.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Enfatiza las posturas cerradas de autoprotección y duda."
+            },
+            {
+                id: 30,
+                word: "Alivio",
+                subtitle: "Salida del Miedo / Tensión",
+                category: 3,
+                categoryName: "Categoría 3: Díadas y Expresiones",
+                classification: "Descarga Psicofisiológica",
+                defaultMode: "eleccion",
+                explanation: "Distensión física inmediata tras comprobar que un peligro ha pasado. Dejar caer el cuerpo relajado, soltar todo el aire y llevar una mano a la frente.",
+                categoryGuide: "Categoría 3: Modalidad a definir. Muestra el paso brusco de la máxima tensión a la relajación total."
+            }
+        ];
+
+        // =========================================================================
+        // ESTADO GLOBAL DE LA APLICACIÓN
+        // =========================================================================
+        let state = {
+            currentView: 'rules', // 'rules' | 'game'
+            projectorMode: true,  // true = palabra oculta con escudo; false = palabra visible directamente
+            isTemporarilyRevealed: false,
+            peekIntervalId: null,
+            remainingIds: CARDS_DATA.map(c => c.id),
+            currentCard: null,
+            currentPlayMode: null, // 'dramatizacion' | 'pictionary' | null
+            isFlipped: false,
+            isSpinning: false,
+            soundEnabled: true,
+            teams: [
+                { id: 1, name: "Equipo Cian", score: 0, color: "#00f5d4" },
+                { id: 2, name: "Equipo Magenta", score: 0, color: "#f72585" }
+            ],
+            activeTeamId: 1,
+            timer: {
+                totalSeconds: 60,
+                remainingSeconds: 60,
+                intervalId: null,
+                isRunning: false,
+                phaseName: "Fase 2: Ronda Regular (60s)"
+            }
+        };
+
+        const TEAM_COLORS = ["#00f5d4", "#f72585", "#fee440", "#9b5de5", "#ff6b35", "#38bdf8"];
+
+        // =========================================================================
+        // SINTETIZADOR DE SONIDO WEB AUDIO API
+        // =========================================================================
+        let audioCtx = null;
+
+        function playTone(freq = 440, type = 'sine', duration = 0.12, volume = 0.15) {
+            if (!state.soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                // Ignorar bloqueo de audio
+            }
+        }
+
+        function playRouletteTick(step) {
+            playTone(300 + (step % 8) * 65, 'triangle', 0.06, 0.1);
+        }
+
+        function playSuccessChime() {
+            playTone(523.25, 'sine', 0.15, 0.16);
+            setTimeout(() => playTone(659.25, 'sine', 0.15, 0.16), 90);
+            setTimeout(() => playTone(783.99, 'sine', 0.25, 0.18), 180);
+        }
+
+        function playTimeUpAlarm() {
+            playTone(220, 'sawtooth', 0.25, 0.2);
+            setTimeout(() => playTone(196, 'sawtooth', 0.35, 0.22), 240);
+        }
+
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            document.getElementById('soundIcon').textContent = state.soundEnabled ? '🔊' : '🔇';
+            showToast(state.soundEnabled ? 'Sonidos activados' : 'Sonidos silenciados', 'info');
+        }
+
+        // =========================================================================
+        // CONTROL CENTRALIZADO DE PRIVACIDAD Y VISIBILIDAD DE LA TARJETA
+        // =========================================================================
+        function toggleProjectorMode() {
+            state.projectorMode = !state.projectorMode;
+            clearPeekTimers();
+            state.isTemporarilyRevealed = false;
+
+            const btn = document.getElementById('projectorModeBtn');
+            const text = document.getElementById('projectorText');
+
+            if (state.projectorMode) {
+                btn.className = "btn-vibrant px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 flex items-center gap-1.5 transition";
+                text.textContent = "Modo Proyector: ON";
+                showToast('📽️ Modo Proyector: ON (Palabra protegida con escudo)', 'success');
+            } else {
+                btn.className = "btn-vibrant px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 flex items-center gap-1.5 transition";
+                text.textContent = "Modo Proyector: OFF";
+                showToast('👀 Modo Proyector: OFF (Palabra visible en pantalla)', 'info');
+            }
+
+            updatePrivacyState();
+        }
+
+        function updatePrivacyState() {
+            const privacyShield = document.getElementById('privacyShield');
+            const wordContainer = document.getElementById('wordContainer');
+            const cardWord = document.getElementById('cardWord');
+            const subDisplay = document.getElementById('cardFrontSub');
+
+            if (!privacyShield || !wordContainer || !cardWord) return;
+
+            // Si aún no hay tarjeta seleccionada o está girando la ruleta, mostrar contenedor de palabra
+            if (!state.currentCard || state.isSpinning) {
+                privacyShield.classList.add('hidden');
+                privacyShield.style.display = 'none';
+                wordContainer.classList.remove('hidden');
+                wordContainer.style.display = 'block';
+                return;
+            }
+
+            // Asegurar que el texto de la palabra esté siempre actualizado
+            cardWord.textContent = state.currentCard.word;
+
+            // Si Modo Proyector está en OFF, o está revelado temporalmente, o la tarjeta ya se volteó:
+            const shouldShowWord = !state.projectorMode || state.isTemporarilyRevealed || state.isFlipped;
+
+            if (shouldShowWord) {
+                privacyShield.classList.add('hidden');
+                privacyShield.style.display = 'none';
+                wordContainer.classList.remove('hidden');
+                wordContainer.style.display = 'block';
+                subDisplay.textContent = "Palabra secreta";
+            } else {
+                // Modo Proyector ON y oculta: mostrar escudo y ocultar palabra
+                privacyShield.classList.remove('hidden');
+                privacyShield.style.display = 'block';
+                wordContainer.classList.add('hidden');
+                wordContainer.style.display = 'none';
+                subDisplay.textContent = "Tarjeta sorteada • Privacidad activa";
+            }
+        }
+
+        function startHoldPeek(e) {
+            if (e && e.cancelable) e.preventDefault();
+            if (!state.currentCard || !state.projectorMode) return;
+            clearPeekTimers();
+            state.isTemporarilyRevealed = true;
+            updatePrivacyState();
+            playTone(620, 'sine', 0.08, 0.1);
+        }
+
+        function stopHoldPeek() {
+            if (!state.currentCard || !state.projectorMode) return;
+            if (state.peekIntervalId) return; // No ocultar si está corriendo el temporizador de 4s
+            state.isTemporarilyRevealed = false;
+            updatePrivacyState();
+        }
+
+        function triggerTimedPeek() {
+            if (!state.currentCard || !state.projectorMode) return;
+            clearPeekTimers();
+
+            state.isTemporarilyRevealed = true;
+            updatePrivacyState();
+            playTone(620, 'sine', 0.1, 0.12);
+
+            const barContainer = document.getElementById('timedPeekBarContainer');
+            const secSpan = document.getElementById('timedPeekSeconds');
+            const progressEl = document.getElementById('timedPeekProgress');
+
+            barContainer.classList.remove('hidden');
+            let msLeft = 4000;
+            const step = 100;
+
+            state.peekIntervalId = setInterval(() => {
+                msLeft -= step;
+                const secs = Math.max(0, Math.ceil(msLeft / 1000));
+                secSpan.textContent = secs;
+                progressEl.style.width = `${Math.max(0, (msLeft / 4000) * 100)}%`;
+
+                if (msLeft <= 0) {
+                    clearPeekTimers();
+                    state.isTemporarilyRevealed = false;
+                    updatePrivacyState();
+                    playTone(420, 'sine', 0.08, 0.08);
+                }
+            }, step);
+        }
+
+        function clearPeekTimers() {
+            if (state.peekIntervalId) {
+                clearInterval(state.peekIntervalId);
+                state.peekIntervalId = null;
+            }
+            const barContainer = document.getElementById('timedPeekBarContainer');
+            if (barContainer) barContainer.classList.add('hidden');
+        }
+
+        // =========================================================================
+        // NAVEGACIÓN ENTRE REGLAS Y TABLERO DE JUEGO
+        // =========================================================================
+        function startGame() {
+            state.currentView = 'game';
+            updateViewVisibility();
+            renderTeams();
+            updatePrivacyState();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (!state.currentCard) {
+                showToast('¡Bienvenido! Pulsa "Girar Ruleta" para sacar tu primera tarjeta.', 'success');
+            }
+        }
+
+        function toggleView() {
+            state.currentView = state.currentView === 'rules' ? 'game' : 'rules';
+            updateViewVisibility();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateViewVisibility() {
+            const rulesView = document.getElementById('rulesView');
+            const gameView = document.getElementById('gameView');
+            const navIcon = document.getElementById('navToggleIcon');
+            const navText = document.getElementById('navToggleText');
+
+            if (state.currentView === 'rules') {
+                rulesView.classList.remove('hidden');
+                gameView.classList.add('hidden');
+                navIcon.textContent = '🎮';
+                navText.textContent = 'Ir al Tablero';
+            } else {
+                rulesView.classList.add('hidden');
+                gameView.classList.remove('hidden');
+                navIcon.textContent = '📖';
+                navText.textContent = 'Ver Reglas';
+            }
+        }
+
+        // =========================================================================
+        // RULETA ALEATORIA SIN REPETICIÓN (30 TARJETAS)
+        // =========================================================================
+        function spinRoulette() {
+            if (state.isSpinning) return;
+
+            if (state.remainingIds.length === 0) {
+                showToast('¡Se han jugado las 30 tarjetas! Reiniciando el mazo automáticamente...', 'warning');
+                resetDeck();
+                return;
+            }
+
+            // Reiniciar estado de tarjeta y cronómetro
+            pauseTimer();
+            clearPeekTimers();
+            state.isSpinning = true;
+            state.isFlipped = false;
+            state.isTemporarilyRevealed = false;
+            showCardFace('front');
+
+            const cardFront = document.getElementById('cardFront');
+            const spinBtn = document.getElementById('spinBtn');
+            const cardWord = document.getElementById('cardWord');
+            const subDisplay = document.getElementById('cardFrontSub');
+
+            // Mostrar palabra girando durante la animación
+            updatePrivacyState();
+            cardFront.classList.add('roulette-spinning');
+            spinBtn.disabled = true;
+            subDisplay.textContent = "Sorteando concepto...";
+
+            let ticks = 0;
+            const maxTicks = 16;
+            const rouletteTimer = setInterval(() => {
+                const randomPreview = CARDS_DATA[Math.floor(Math.random() * CARDS_DATA.length)];
+                cardWord.textContent = randomPreview.word;
+                playRouletteTick(ticks);
+                ticks++;
+
+                if (ticks >= maxTicks) {
+                    clearInterval(rouletteTimer);
+                    finalizeCardSelection();
+                }
+            }, 65);
+        }
+
+        function finalizeCardSelection() {
+            const cardFront = document.getElementById('cardFront');
+            const spinBtn = document.getElementById('spinBtn');
+
+            cardFront.classList.remove('roulette-spinning');
+            spinBtn.disabled = false;
+            state.isSpinning = false;
+
+            // Elegir índice aleatorio de las tarjetas disponibles sin repetir
+            const randIndex = Math.floor(Math.random() * state.remainingIds.length);
+            const selectedId = state.remainingIds[randIndex];
+            state.remainingIds.splice(randIndex, 1);
+
+            state.currentCard = CARDS_DATA.find(c => c.id === selectedId);
+            updateDeckCounter();
+
+            // Determinar modalidad inicial según categoría
+            if (state.currentCard.defaultMode === 'dramatizacion') {
+                state.currentPlayMode = 'dramatizacion';
+            } else if (state.currentCard.defaultMode === 'pictionary') {
+                state.currentPlayMode = 'pictionary';
+            } else {
+                // Categoría 3: sortea inicialmente pero deja botones para cambiar
+                state.currentPlayMode = Math.random() < 0.5 ? 'dramatizacion' : 'pictionary';
+            }
+
+            // Bloquear volteo hasta que termine el cronómetro o se marque acierto
+            lockCardFlip();
+
+            // Renderizar datos en tarjeta y panel de estrategia
+            renderCardContent();
+            updateStrategyPanel();
+
+            // Actualizar visibilidad según Modo Proyector (ON u OFF)
+            state.isTemporarilyRevealed = false;
+            updatePrivacyState();
+
+            // Preparar cronómetro en 10s (fase de preparación) por defecto
+            setTimerPhase(10, 'Fase 1: Preparación (10s)');
+            playSuccessChime();
+        }
+
+        function resetDeck() {
+            pauseTimer();
+            clearPeekTimers();
+            state.remainingIds = CARDS_DATA.map(c => c.id);
+            state.currentCard = null;
+            state.currentPlayMode = null;
+            state.isFlipped = false;
+            state.isTemporarilyRevealed = false;
+
+            showCardFace('front');
+            updateDeckCounter();
+
+            document.getElementById('cardNumberTag').textContent = "TARJETA #--";
+            document.getElementById('cardCategoryTag').textContent = "Categoría --";
+            document.getElementById('cardFrontSub').textContent = "Concepto a representar";
+            document.getElementById('cardWord').textContent = "¡Pulsa Girar Ruleta!";
+            document.getElementById('cardFrontModePill').textContent = "Listo para jugar";
+
+            document.getElementById('strategyEmoji').textContent = "✨";
+            document.getElementById('strategyBadge').textContent = "Mazo reiniciado";
+            document.getElementById('strategyTitle').textContent = "Gira la ruleta para sortear un concepto";
+            document.getElementById('strategyTip').innerHTML = "💡 <strong>Tip:</strong> Las 30 tarjetas están listas nuevamente sin repetición.";
+            document.getElementById('modeSelectorContainer').classList.add('hidden');
+
+            updatePrivacyState();
+            lockCardFlip();
+            setTimerPhase(60, 'Selecciona una fase para iniciar');
+            showToast('🔄 Mazo reiniciado: 30 tarjetas disponibles.', 'info');
+        }
+
+        function updateDeckCounter() {
+            const count = state.remainingIds.length;
+            document.getElementById('remainingCountBadge').textContent = count;
+            document.getElementById('remainingText').textContent = `${count} de 30`;
+        }
+
+        // =========================================================================
+        // ESTRATEGIA DINÁMICA Y SELECTOR DRAMATIZACIÓN VS PICTIONARY
+        // =========================================================================
+        function updateStrategyPanel() {
+            const card = state.currentCard;
+            if (!card) return;
+
+            const panel = document.getElementById('strategyPanel');
+            const emoji = document.getElementById('strategyEmoji');
+            const badge = document.getElementById('strategyBadge');
+            const title = document.getElementById('strategyTitle');
+            const tip = document.getElementById('strategyTip');
+            const modeSelector = document.getElementById('modeSelectorContainer');
+            const frontPill = document.getElementById('cardFrontModePill');
+
+            // Mostrar siempre el selector para poder sortear o alternar modalidad
+            modeSelector.classList.remove('hidden');
+
+            if (card.category === 1) {
+                panel.className = "rounded-3xl bg-gradient-to-r from-[#0e293d] to-[#131d42] border-2 border-[#00f5d4]/60 p-4 sm:p-5 transition-all";
+                badge.className = "inline-block text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-cyan-400/20 text-cyan-300 mb-1";
+                badge.textContent = "Categoría 1 • Rueda de Plutchik";
+            } else if (card.category === 2) {
+                panel.className = "rounded-3xl bg-gradient-to-r from-[#2e2412] to-[#131d42] border-2 border-[#fee440]/60 p-4 sm:p-5 transition-all";
+                badge.className = "inline-block text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 mb-1";
+                badge.textContent = "Categoría 2 • Emociones vs. Sentimientos";
+            } else {
+                panel.className = "rounded-3xl bg-gradient-to-r from-[#301336] to-[#131d42] border-2 border-[#f72585]/60 p-4 sm:p-5 transition-all";
+                badge.className = "inline-block text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-pink-400/20 text-pink-300 mb-1";
+                badge.textContent = "Categoría 3 • Díadas y Expresiones (A Definir)";
+            }
+
+            if (state.currentPlayMode === 'dramatizacion') {
+                emoji.textContent = "🎭";
+                title.textContent = "Estrategia: DRAMATIZACIÓN (Mímica Corporal)";
+                tip.innerHTML = `🔇 <strong>Regla clave:</strong> Cero sonidos, cero palabras y sin usar objetos. Comunica <em>${card.subtitle}</em> solo con postura, manos y microexpresiones.`;
+                frontPill.innerHTML = "🎭 Modalidad: DRAMATIZACIÓN";
+                frontPill.className = "mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider bg-cyan-400/20 text-cyan-300 border border-cyan-400/50";
+            } else {
+                emoji.textContent = "🎨";
+                title.textContent = "Estrategia: PICTIONARY (Dibujo sin Texto)";
+                tip.innerHTML = `✏️ <strong>Regla clave:</strong> Cero letras, números ni gestos. Usa rayos/chispas para reacciones rápidas o relojes/nubes para sentimientos duraderos.`;
+                frontPill.innerHTML = "🎨 Modalidad: PICTIONARY";
+                frontPill.className = "mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/50";
+            }
+        }
+
+        function defineModeRandomly() {
+            if (!state.currentCard) return;
+            const modes = ['dramatizacion', 'pictionary'];
+            let count = 0;
+            const interval = setInterval(() => {
+                state.currentPlayMode = modes[count % 2];
+                updateStrategyPanel();
+                playTone(420 + (count % 2) * 140, 'sine', 0.06, 0.1);
+                count++;
+                if (count >= 7) {
+                    clearInterval(interval);
+                    state.currentPlayMode = Math.random() < 0.5 ? 'dramatizacion' : 'pictionary';
+                    updateStrategyPanel();
+                    playSuccessChime();
+                    showToast(
+                        state.currentPlayMode === 'dramatizacion'
+                            ? '🎭 ¡Salió DRAMATIZACIÓN!'
+                            : '🎨 ¡Salió PICTIONARY!',
+                        'info'
+                    );
+                }
+            }, 80);
+        }
+
+        function setSpecificMode(mode) {
+            if (!state.currentCard) {
+                showToast('Primero gira la ruleta para sacar una tarjeta.', 'warning');
+                return;
+            }
+            state.currentPlayMode = mode;
+            updateStrategyPanel();
+            playTone(600, 'sine', 0.1, 0.12);
+            showToast(
+                mode === 'dramatizacion'
+                    ? '🎭 Modalidad fijada: DRAMATIZACIÓN'
+                    : '🎨 Modalidad fijada: PICTIONARY',
+                'info'
+            );
+        }
+
+        // =========================================================================
+        // RENDERIZADO Y VOLTEO DE TARJETA (FRENTE <-> REVERSO)
+        // =========================================================================
+        function showCardFace(face) {
+            const front = document.getElementById('cardFront');
+            const back = document.getElementById('cardBack');
+
+            if (face === 'back') {
+                front.classList.add('hidden');
+                front.style.display = 'none';
+                back.classList.remove('hidden');
+                back.style.display = 'flex';
+            } else {
+                back.classList.add('hidden');
+                back.style.display = 'none';
+                front.classList.remove('hidden');
+                front.style.display = 'flex';
+            }
+        }
+
+        function renderCardContent() {
+            const card = state.currentCard;
+            if (!card) return;
+
+            // Frente
+            document.getElementById('cardNumberTag').textContent = `TARJETA #${String(card.id).padStart(2, '0')} / 30`;
+            document.getElementById('cardCategoryTag').textContent = card.categoryName;
+            document.getElementById('cardWord').textContent = card.word;
+
+            // Reverso
+            document.getElementById('backClassificationBadge').textContent = card.classification;
+            document.getElementById('backWordTitle').textContent = `${card.word} (${card.subtitle})`;
+            document.getElementById('backExplanationText').textContent = card.explanation;
+            document.getElementById('backCategoryTitle').textContent = `🧭 ${card.categoryName}`;
+            document.getElementById('backCategoryExplanation').textContent = card.categoryGuide;
+        }
+
+        function lockCardFlip() {
+            const flipBtn = document.getElementById('flipCardBtn');
+            const forceBtn = document.getElementById('forceFlipBtn');
+            const lockHint = document.getElementById('flipLockHint');
+
+            flipBtn.disabled = true;
+            forceBtn.classList.remove('hidden');
+            lockHint.innerHTML = '🔒 Se desbloquea al terminar el tiempo o acertar';
+            lockHint.className = 'text-xs text-amber-300/90 font-medium flex items-center gap-1.5';
+        }
+
+        function unlockCardFlip() {
+            const flipBtn = document.getElementById('flipCardBtn');
+            const forceBtn = document.getElementById('forceFlipBtn');
+            const lockHint = document.getElementById('flipLockHint');
+
+            flipBtn.disabled = false;
+            forceBtn.classList.add('hidden');
+            lockHint.innerHTML = '🔓 ¡Lista para voltear y ver explicación!';
+            lockHint.className = 'text-xs text-emerald-300 font-bold flex items-center gap-1.5';
+        }
+
+        function flipCard(force = false) {
+            if (!state.currentCard) {
+                showToast('Primero gira la ruleta para obtener una tarjeta.', 'warning');
+                return;
+            }
+            const flipBtn = document.getElementById('flipCardBtn');
+            if (flipBtn.disabled && !force) return;
+
+            if (force) unlockCardFlip();
+
+            state.isFlipped = !state.isFlipped;
+            if (state.isFlipped) {
+                showCardFace('back');
+                playTone(660, 'sine', 0.14, 0.12);
+            } else {
+                showCardFace('front');
+                updatePrivacyState();
+                playTone(520, 'sine', 0.14, 0.12);
+            }
+        }
+
+        function completeTurnEarly() {
+            if (!state.currentCard) {
+                showToast('Gira la ruleta para iniciar un turno.', 'warning');
+                return;
+            }
+            pauseTimer();
+            clearPeekTimers();
+            state.isTemporarilyRevealed = true;
+            updatePrivacyState();
+            unlockCardFlip();
+            if (!state.isFlipped) {
+                flipCard(true);
+            }
+            playSuccessChime();
+            showToast('🎉 ¡Turno finalizado! Asigna los puntos en el marcador.', 'success');
+        }
+
+        // =========================================================================
+        // CRONÓMETRO POR FASES (10s PREP, 60s RONDA, 15s ROBO)
+        // =========================================================================
+        function setTimerPhase(seconds, phaseLabel) {
+            pauseTimer();
+            state.timer.totalSeconds = seconds;
+            state.timer.remainingSeconds = seconds;
+            state.timer.phaseName = phaseLabel;
+            document.getElementById('timerPhaseLabel').textContent = phaseLabel;
+            updateTimerUI();
+        }
+
+        function startTimer() {
+            if (state.timer.isRunning) return;
+            if (state.timer.remainingSeconds <= 0) {
+                state.timer.remainingSeconds = state.timer.totalSeconds;
+            }
+
+            state.timer.isRunning = true;
+            playTone(520, 'sine', 0.1, 0.12);
+
+            state.timer.intervalId = setInterval(() => {
+                state.timer.remainingSeconds--;
+                updateTimerUI();
+
+                if (state.timer.remainingSeconds <= 3 && state.timer.remainingSeconds > 0) {
+                    playTone(880, 'triangle', 0.1, 0.15);
+                }
+
+                if (state.timer.remainingSeconds <= 0) {
+                    pauseTimer();
+                    playTimeUpAlarm();
+                    unlockCardFlip();
+                    showToast(`⏰ ¡Tiempo agotado en ${state.timer.phaseName}! Ya puedes voltear la tarjeta.`, 'warning');
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            state.timer.isRunning = false;
+            if (state.timer.intervalId) {
+                clearInterval(state.timer.intervalId);
+                state.timer.intervalId = null;
+            }
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            state.timer.remainingSeconds = state.timer.totalSeconds;
+            updateTimerUI();
+        }
+
+        function updateTimerUI() {
+            const rem = state.timer.remainingSeconds;
+            const total = state.timer.totalSeconds;
+            const mins = Math.floor(rem / 60);
+            const secs = rem % 60;
+
+            const display = document.getElementById('timerDisplay');
+            const bar = document.getElementById('timerProgressBar');
+
+            display.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            const pct = Math.max(0, (rem / total) * 100);
+            bar.style.width = `${pct}%`;
+
+            if (pct > 50) {
+                display.className = "text-4xl sm:text-5xl font-black tabular-nums text-cyan-300 min-w-[105px]";
+                bar.className = "h-full rounded-full bg-gradient-to-r from-[#00f5d4] to-[#00bbf9] transition-all duration-300";
+            } else if (pct > 25) {
+                display.className = "text-4xl sm:text-5xl font-black tabular-nums text-amber-300 min-w-[105px]";
+                bar.className = "h-full rounded-full bg-gradient-to-r from-[#fee440] to-[#ff6b35] transition-all duration-300";
+            } else {
+                display.className = "text-4xl sm:text-5xl font-black tabular-nums text-rose-400 animate-pulse min-w-[105px]";
+                bar.className = "h-full rounded-full bg-gradient-to-r from-[#f72585] to-[#ef4444] transition-all duration-300";
+            }
+        }
+
+        // =========================================================================
+        // GESTIÓN DINÁMICA DE EQUIPOS Y PUNTUACIÓN
+        // =========================================================================
+        function addTeam() {
+            if (state.teams.length >= 6) {
+                showToast('Máximo 6 equipos permitidos para mantener el ritmo del juego.', 'warning');
+                return;
+            }
+            const nextNum = state.teams.length + 1;
+            const color = TEAM_COLORS[(nextNum - 1) % TEAM_COLORS.length];
+            const newId = Date.now();
+            state.teams.push({
+                id: newId,
+                name: `Equipo ${nextNum}`,
+                score: 0,
+                color: color
+            });
+            renderTeams();
+            playTone(600, 'sine', 0.1, 0.1);
+        }
+
+        function removeTeam(id) {
+            if (state.teams.length <= 2) {
+                showToast('Debe haber al menos 2 equipos para competir.', 'warning');
+                return;
+            }
+            state.teams = state.teams.filter(t => t.id !== id);
+            if (state.activeTeamId === id && state.teams.length > 0) {
+                state.activeTeamId = state.teams[0].id;
+            }
+            renderTeams();
+            playTone(350, 'sine', 0.1, 0.1);
+        }
+
+        function setActiveTeam(id) {
+            state.activeTeamId = id;
+            renderTeams();
+        }
+
+        function updateTeamName(id, newName) {
+            const team = state.teams.find(t => t.id === id);
+            if (team && newName.trim() !== '') {
+                team.name = newName.trim();
+            }
+        }
+
+        function changeScore(id, delta, reason) {
+            const team = state.teams.find(t => t.id === id);
+            if (!team) return;
+
+            team.score = Math.max(0, team.score + delta);
+            renderTeams();
+
+            if (delta > 0) {
+                playSuccessChime();
+                showToast(`${team.name}: +${delta} pt${delta > 1 ? 's' : ''} (${reason})`, 'success');
+            } else {
+                playTone(260, 'sawtooth', 0.2, 0.15);
+                showToast(`${team.name}: ${delta} pt (${reason})`, 'warning');
+            }
+
+            if (team.score >= 20) {
+                document.getElementById('winnerTeamName').textContent = `¡${team.name} Gana!`;
+                document.getElementById('winnerScoreText').textContent = `Ha alcanzado ${team.score} puntos demostrando maestría en emociones y sentimientos.`;
+                document.getElementById('victoryModal').classList.remove('hidden');
+            }
+        }
+
+        function closeVictoryModal() {
+            document.getElementById('victoryModal').classList.add('hidden');
+        }
+
+        function resetAllScores() {
+            state.teams.forEach(t => t.score = 0);
+            closeVictoryModal();
+            renderTeams();
+            showToast('Marcadores reiniciados a 0 puntos.', 'info');
+        }
+
+        function renderTeams() {
+            const container = document.getElementById('teamsContainer');
+            container.innerHTML = '';
+
+            state.teams.forEach((team) => {
+                const isActive = team.id === state.activeTeamId;
+                const progressPct = Math.min(100, (team.score / 20) * 100);
+
+                const card = document.createElement('div');
+                card.className = `rounded-2xl p-4 transition-all border-2 ${
+                    isActive 
+                        ? 'bg-[#1a2754] shadow-lg' 
+                        : 'bg-[#141e42]/80 border-white/10 hover:border-white/25'
+                }`;
+                if (isActive) {
+                    card.style.borderColor = team.color;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-2 mb-2.5">
+                        <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                            <button onclick="setActiveTeam(${team.id})" class="w-4 h-4 rounded-full shrink-0 ring-2 ring-offset-2 ring-offset-[#0f1733] transition" style="background-color: ${team.color};" title="Marcar como equipo en turno"></button>
+                            <input 
+                                type="text" 
+                                value="${team.name}" 
+                                onchange="updateTeamName(${team.id}, this.value)"
+                                class="bg-transparent font-extrabold text-white text-base focus:outline-none focus:bg-white/10 px-2 py-0.5 rounded-lg w-full truncate"
+                                aria-label="Nombre del equipo"
+                            />
+                            ${isActive ? `<span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-white/15 text-cyan-200 shrink-0">Turno</span>` : ''}
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="text-2xl font-black tabular-nums" style="color: ${team.color}">${team.score}</span>
+                            <span class="text-xs text-slate-400 font-bold">/20</span>
+                            ${state.teams.length > 2 ? `
+                                <button onclick="removeTeam(${team.id})" class="ml-1 w-7 h-7 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 text-xs font-bold flex items-center justify-center transition" title="Eliminar equipo">
+                                    ✕
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <div class="w-full h-2 bg-black/40 rounded-full overflow-hidden mb-3">
+                        <div class="h-full rounded-full transition-all duration-300" style="width: ${progressPct}%; background-color: ${team.color}"></div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button onclick="changeScore(${team.id}, 2, 'Acierto exacto')" class="btn-vibrant py-1.5 px-2 rounded-xl font-black text-xs bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/40">
+                            +2 Exacto
+                        </button>
+                        <button onclick="changeScore(${team.id}, 1, 'Sinónimo / Robo')" class="btn-vibrant py-1.5 px-2 rounded-xl font-black text-xs bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-400/40">
+                            +1 Sinón/Robo
+                        </button>
+                        <button onclick="changeScore(${team.id}, 1, 'Bono Teoría')" class="btn-vibrant py-1.5 px-2 rounded-xl font-black text-xs bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-400/40">
+                            +1 Teoría
+                        </button>
+                        <button onclick="changeScore(${team.id}, -1, 'Infracción')" class="btn-vibrant py-1.5 px-2 rounded-xl font-black text-xs bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-400/40">
+                            -1 Falta
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // =========================================================================
+        // NOTIFICACIONES FLOTANTES (TOASTS)
+        // =========================================================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            const styles = {
+                success: 'bg-[#0f2e2e] border-emerald-400 text-emerald-200',
+                warning: 'bg-[#33220f] border-amber-400 text-amber-200',
+                info: 'bg-[#142147] border-cyan-400 text-cyan-200'
+            };
+
+            toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border shadow-xl text-xs sm:text-sm font-semibold backdrop-blur-md transition-all duration-300 ${styles[type] || styles.info}`;
+            toast.textContent = message;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        // Inicialización al cargar
+        window.onload = function() {
+            renderTeams();
+            updateTimerUI();
+            updateDeckCounter();
+            updatePrivacyState();
+        };
+    </script>
+</body>
+</html>
